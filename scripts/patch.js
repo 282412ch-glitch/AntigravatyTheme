@@ -49,6 +49,35 @@ function filesMatch(leftPath, rightPath) {
   }
 }
 
+// Electron keeps native/runtime-sensitive files beside app.asar. Repacking
+// without the matching --unpack-dir flag moves those files into the archive
+// and can leave the client stuck during startup.
+function findUnpackDirPattern(resourcesDir) {
+  const unpackedRoot = path.join(resourcesDir, 'app.asar.unpacked');
+  if (!fs.existsSync(unpackedRoot)) return null;
+
+  const topLevelEntries = fs.readdirSync(unpackedRoot, { withFileTypes: true });
+  if (topLevelEntries.length === 1 && topLevelEntries[0].isDirectory()) {
+    const topLevelName = topLevelEntries[0].name;
+    const topLevelPath = path.join(unpackedRoot, topLevelName);
+    const children = fs.readdirSync(topLevelPath, { withFileTypes: true });
+
+    // Keep the pattern narrow when the installed client exposes one native
+    // package (the current Antigravity layout).
+    if (children.length === 1 && children[0].isDirectory()) {
+      return path.posix.join(topLevelName, children[0].name);
+    }
+
+    // Multiple packages under node_modules are all external by definition.
+    if (topLevelName === 'node_modules') return 'node_modules/*';
+    return topLevelName;
+  }
+
+  // A wildcard is safer than silently packing native files when a future
+  // client adds more than one external top-level directory.
+  return '*';
+}
+
 function generateHookCode() {
   const cleanDist = THEME_DIST_DIR.replace(/\\/g, '/');
   return `
@@ -201,7 +230,12 @@ function main() {
   // 7. Repack asar
   console.log('[Patch] Repacking modified app.asar...');
   const tempAsar = path.join(os.tmpdir(), `app_repacked_${Date.now()}.asar`);
-  execSync(`npx asar pack "${tempDir}" "${tempAsar}"`, { stdio: 'inherit' });
+  const unpackDirPattern = findUnpackDirPattern(resourcesDir);
+  const unpackArg = unpackDirPattern ? ` --unpack-dir "${unpackDirPattern}"` : '';
+  if (unpackDirPattern) {
+    console.log(`[Patch] Preserving external files with --unpack-dir ${unpackDirPattern}`);
+  }
+  execSync(`npx asar pack "${tempDir}" "${tempAsar}"${unpackArg}`, { stdio: 'inherit' });
 
   if (!archiveContainsHook(tempAsar)) {
     throw new Error('[Patch] Repacked app.asar does not contain the theme loader hook.');
@@ -215,6 +249,7 @@ function main() {
   try {
     fs.rmSync(tempDir, { recursive: true, force: true });
     fs.unlinkSync(tempAsar);
+    fs.rmSync(`${tempAsar}.unpacked`, { recursive: true, force: true });
   } catch (_) {}
 
   console.log('\n🎉 [Patch] Antigravity successfully patched!');
