@@ -1,0 +1,25 @@
+{
+  "name": "antigravity-frosted-theme",
+  "version": "1.2.0",
+  "description": "A frosted-glass / glassmorphism theme & customization tool for Antigravity, inspired by dsh-frosted-window.",
+  "main": "dist/theme.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "patch": "node scripts/patch.js",
+    "unpatch": "node scripts/unpatch.js",
+    "inject": "node scripts/live-inject.js",
+    "dev": "node scripts/build.js && node scripts/live-inject.js"
+  },
+  "keywords": [
+    "antigravity",
+    "frosted-glass",
+    "glassmorphism",
+    "theme",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron/asar": "^3.4.1"
+  }
+}

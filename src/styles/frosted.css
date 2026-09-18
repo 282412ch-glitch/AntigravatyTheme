@@ -1,0 +1,73 @@
+/* ==========================================================================
+   Antigravity Frosted Glass Theme - Core Variables & Background Layer
+   ========================================================================== */
+
+:root {
+  --ag-glass-blur: 16px;
+  --ag-glass-saturate: 125%;
+  --ag-glass-brightness: 100%;
+  --ag-glass-opacity: 0.65;
+  --ag-wallpaper-dim: 0.45;
+  --ag-accent-color: #3b82f6;
+  --ag-accent-glow: rgba(59, 130, 246, 0.35);
+  --ag-glass-border-glow: rgba(255, 255, 255, 0.12);
+  --ag-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+  --ag-glass-radius-lg: 16px;
+  --ag-glass-radius-md: 12px;
+  --ag-glass-radius-sm: 8px;
+}
+
+/* Base Body & App Root Transparency */
+body.ag-theme-active,
+body.ag-theme-active #root,
+body.ag-theme-active #root > div {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Fixed Wallpaper Layer (Underneath all UI) */
+#ag-wallpaper-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  transition: filter 0.3s ease, transform 0.3s ease, opacity 0.4s ease;
+  will-change: filter, transform;
+}
+
+/* Dimming & Lighting Overlay */
+#ag-wallpaper-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -9;
+  pointer-events: none;
+  transition: background-color 0.3s ease;
+}
+
+/* Dark Mode Tint */
+body.ag-theme-active.theme-dark #ag-wallpaper-overlay {
+  background-color: rgba(10, 10, 15, var(--ag-wallpaper-dim));
+}
+
+/* Light Mode Tint */
+body.ag-theme-active.theme-light #ag-wallpaper-overlay {
+  background-color: rgba(245, 245, 250, var(--ag-wallpaper-dim));
+}
+
+/* Glass Surface Utility Classes */
+.ag-glass-surface {
+  backdrop-filter: blur(var(--ag-glass-blur)) saturate(var(--ag-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--ag-glass-blur)) saturate(var(--ag-glass-saturate)) !important;
+  box-shadow: var(--ag-glass-shadow);
+  border: 1px solid var(--ag-glass-border-glow) !important;
+}

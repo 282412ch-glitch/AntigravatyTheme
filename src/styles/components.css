@@ -1,0 +1,162 @@
+/* ==========================================================================
+   Antigravity UI Components Frosted Glass Styling
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Sidebar (Navigation & Projects)
+   -------------------------------------------------------------------------- */
+body.ag-theme-active .bg-sidebar,
+body.ag-theme-active aside,
+body.ag-theme-active [class*="bg-sidebar"] {
+  backdrop-filter: blur(calc(var(--ag-glass-blur) * 1.25)) saturate(var(--ag-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(calc(var(--ag-glass-blur) * 1.25)) saturate(var(--ag-glass-saturate)) !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Dark Mode Sidebar */
+body.ag-theme-active.theme-dark .bg-sidebar,
+body.ag-theme-active.theme-dark [class*="bg-sidebar"] {
+  background-color: rgba(18, 18, 24, calc(var(--ag-glass-opacity) * 0.9)) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Light Mode Sidebar */
+body.ag-theme-active.theme-light .bg-sidebar,
+body.ag-theme-active.theme-light [class*="bg-sidebar"] {
+  background-color: rgba(245, 245, 250, calc(var(--ag-glass-opacity) * 0.9)) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Sidebar Active / Hover Items */
+body.ag-theme-active.theme-dark .bg-sidebar-secondary,
+body.ag-theme-active.theme-dark [class*="bg-sidebar-secondary"] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 8px;
+}
+
+body.ag-theme-active.theme-light .bg-sidebar-secondary,
+body.ag-theme-active.theme-light [class*="bg-sidebar-secondary"] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Main Chat / Conversation & Cards
+   -------------------------------------------------------------------------- */
+body.ag-theme-active .bg-card,
+body.ag-theme-active [class*="bg-card"] {
+  backdrop-filter: blur(var(--ag-glass-blur)) saturate(var(--ag-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--ag-glass-blur)) saturate(var(--ag-glass-saturate)) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.12) !important;
+  transition: all 0.25s ease;
+}
+
+body.ag-theme-active.theme-dark .bg-card,
+body.ag-theme-active.theme-dark [class*="bg-card"] {
+  background-color: rgba(28, 28, 36, calc(var(--ag-glass-opacity) * 0.75)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+}
+
+body.ag-theme-active.theme-light .bg-card,
+body.ag-theme-active.theme-light [class*="bg-card"] {
+  background-color: rgba(255, 255, 255, calc(var(--ag-glass-opacity) * 0.8)) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Secondary Backgrounds (Pills, Chips, Tagged Elements) */
+body.ag-theme-active.theme-dark .bg-secondary,
+body.ag-theme-active.theme-dark [class*="bg-secondary"] {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+body.ag-theme-active.theme-light .bg-secondary,
+body.ag-theme-active.theme-light [class*="bg-secondary"] {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. Input Box (Frosted Capsule)
+   -------------------------------------------------------------------------- */
+body.ag-theme-active [class*="rounded-[calc(theme(borderRadius.xl)-1px)]"],
+body.ag-theme-active div[class*="items-end"][class*="p-1.5"] {
+  backdrop-filter: blur(calc(var(--ag-glass-blur) * 1.5)) saturate(var(--ag-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(calc(var(--ag-glass-blur) * 1.5)) saturate(var(--ag-glass-saturate)) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--ag-glass-border-glow) !important;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease !important;
+}
+
+body.ag-theme-active.theme-dark [class*="rounded-[calc(theme(borderRadius.xl)-1px)]"],
+body.ag-theme-active.theme-dark div[class*="items-end"][class*="p-1.5"] {
+  background-color: rgba(24, 24, 32, calc(var(--ag-glass-opacity) * 0.85)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+body.ag-theme-active.theme-light [class*="rounded-[calc(theme(borderRadius.xl)-1px)]"],
+body.ag-theme-active.theme-light div[class*="items-end"][class*="p-1.5"] {
+  background-color: rgba(255, 255, 255, calc(var(--ag-glass-opacity) * 0.9)) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Input Focus Glow */
+body.ag-theme-active [class*="rounded-[calc(theme(borderRadius.xl)-1px)]"]:focus-within,
+body.ag-theme-active div[class*="items-end"][class*="p-1.5"]:focus-within {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25), 0 0 0 1.5px var(--ag-accent-color), 0 0 16px var(--ag-accent-glow) !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. Borders & Dividers
+   -------------------------------------------------------------------------- */
+body.ag-theme-active .bg-border,
+body.ag-theme-active [class*="bg-border"] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.ag-theme-active.theme-light .bg-border,
+body.ag-theme-active.theme-light [class*="bg-border"] {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. Floating Scrollbar
+   -------------------------------------------------------------------------- */
+body.ag-theme-active ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+body.ag-theme-active ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.ag-theme-active ::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 160, 0.28);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+body.ag-theme-active ::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 140, 160, 0.55);
+}
+
+/* --------------------------------------------------------------------------
+   6. Code Blocks & Terminal Previews
+   -------------------------------------------------------------------------- */
+body.ag-theme-active pre,
+body.ag-theme-active code:not(pre code) {
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+body.ag-theme-active.theme-dark pre {
+  background-color: rgba(16, 16, 22, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.ag-theme-active.theme-light pre {
+  background-color: rgba(246, 248, 250, 0.88) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
