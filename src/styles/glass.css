@@ -1652,6 +1652,25 @@ body[data-dsh-frosted-window='light'] .fw-chip[data-tone='warn'] {
   line-height: 14px;
 }
 
+.fw-inline-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 5px;
+  padding: 3px 6px;
+  color: var(--color-fw-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  line-height: 14px;
+  cursor: pointer;
+  transition: color var(--dur-fw-fast), background-color var(--dur-fw-fast);
+}
+
+.fw-inline-btn:hover {
+  color: var(--color-fw-accent-strong);
+  background: var(--color-fw-accent-soft);
+}
+
 .fw-grid {
   gap: var(--space-fw-3) var(--space-fw-6);
 }
@@ -1786,6 +1805,7 @@ body[data-dsh-frosted-window='light'] .fw-btn[data-kind='primary']:disabled {
 .fw-top-btn:focus-visible,
 .fw-close-btn:focus-visible,
 .fw-btn:focus-visible,
+.fw-inline-btn:focus-visible,
 .fw-switch input:focus-visible,
 .fw-hero:focus-visible,
 #fw-quick-trigger:focus-visible,
@@ -1850,6 +1870,18 @@ body[data-dsh-frosted-window='light'] #fw-quick-trigger:hover {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0ms;
+}
+
+/* Browsers without backdrop-filter still get a readable, opaque surface. */
+@supports not ((backdrop-filter: blur(1px))) {
+  #fw-modal-window,
+  body[data-dsh-frosted-window='dark'] #fw-modal-window {
+    background: #111614 !important;
+  }
+
+  body[data-dsh-frosted-window='light'] #fw-modal-window {
+    background: #f6f8f7 !important;
+  }
 }
 
 @media (max-width: 560px) {

@@ -3,6 +3,15 @@ import { DEFAULT_WALLPAPER_DATA } from './default-image.js';
 
 export const DEFAULT_WALLPAPER = DEFAULT_WALLPAPER_DATA;
 
+function isValidImageRecord(record) {
+  return Boolean(
+    record
+    && typeof record === 'object'
+    && typeof record.data === 'string'
+    && /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(record.data)
+  );
+}
+
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(IMAGE_DB, 1);
@@ -23,10 +32,15 @@ export async function getImage() {
     if (typeof window !== 'undefined' && window.nativeStorage && window.nativeStorage.getItems) {
       const items = await window.nativeStorage.getItems();
       if (items) {
-        const raw = items[IMAGE_KEY] || items[LEGACY_IMAGE_KEY];
-        if (raw) {
-          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          return parsed;
+        for (const key of [IMAGE_KEY, LEGACY_IMAGE_KEY]) {
+          const raw = items[key];
+          if (!raw) continue;
+          try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (isValidImageRecord(parsed)) return parsed;
+          } catch {
+            // Try the compatibility key before falling back to IndexedDB.
+          }
         }
       }
     }
@@ -44,7 +58,7 @@ export async function getImage() {
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => resolve(null);
     });
-    if (record && record.data) {
+    if (isValidImageRecord(record)) {
       // Auto-migrate to nativeStorage so future launches with different ports will have it
       putImage(record).catch(() => {});
       return record;
@@ -56,6 +70,7 @@ export async function getImage() {
 }
 
 export async function putImage(record) {
+  if (!isValidImageRecord(record)) return;
   // 1. Persist to nativeStorage (AppData/Roaming/Antigravity/app_storage.json)
   try {
     if (typeof window !== 'undefined' && window.nativeStorage && window.nativeStorage.updateItems) {
@@ -103,4 +118,3 @@ export async function clearImage() {
     });
   } catch {}
 }
-

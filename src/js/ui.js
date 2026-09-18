@@ -1,12 +1,24 @@
-/**
- * Exact high-fidelity replica of dsh-frosted-window settings UI
- * References: SenryLee/dsh-frosted-window/src/client/FrostedSection.tsx
- */
+/** Settings surface for the Antigravity frosted theme. */
 
-import { loadKnobs, loadKnobsAsync, saveKnobs } from './knobs.js';
+import { DEFAULT_KNOBS, loadKnobs, loadKnobsAsync, saveKnobs } from './knobs.js';
 import { getImage, putImage, clearImage, DEFAULT_WALLPAPER } from './image-store.js';
-import { ALLOWED_TYPES } from './constants.js';
+import { ALLOWED_TYPES, MAX_IMAGE_BYTES } from './constants.js';
 import { applySurface } from './wallpaper.js';
+
+function isImageDataUrl(value) {
+  return typeof value === 'string' && /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(value);
+}
+
+function isSupportedImage(file) {
+  if (!file) return false;
+  if (ALLOWED_TYPES.includes(file.type)) return true;
+  return /\.(?:jpe?g|png|webp|gif)$/i.test(file.name || '');
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function createSettingsModal(initialKnobs = null, initialImageRecord = null) {
   if (typeof window !== 'undefined') {
@@ -22,13 +34,16 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
   let imageSelectionStarted = false;
   let autoSaveTimer = null;
   let statusTimer = null;
+  let isPersisting = false;
   let lastFocusedElement = null;
   let imageReadToken = 0;
   let changeVersion = 0;
   let persistChain = Promise.resolve();
-  let currentImageUrl = initialImageRecord?.data || DEFAULT_WALLPAPER;
-  let currentFileName = initialImageRecord?.name || (initialImageRecord?.data ? 'custom_wallpaper' : 'anime_scenery.jpg');
-  let currentDimensions = initialImageRecord?.dimensions || '1920×1080';
+  let pendingFlushTask = null;
+  const safeInitialImage = initialImageRecord && isImageDataUrl(initialImageRecord.data) ? initialImageRecord : null;
+  let currentImageUrl = safeInitialImage?.data || DEFAULT_WALLPAPER;
+  let currentFileName = safeInitialImage?.name || (safeInitialImage ? 'custom_wallpaper' : 'anime_scenery.jpg');
+  let currentDimensions = safeInitialImage?.dimensions || '1920×1080';
 
   // Ensure transparent window control overlay
   if (typeof window !== 'undefined' && window.electronNative && window.electronNative.setTitleBarOverlay) {
@@ -69,7 +84,7 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
           </div>
           <div class="fw-modal-top-actions">
             <span class="fw-chip" id="fw-chip-status" role="status" aria-live="polite">已保存</span>
-            <button type="button" class="fw-top-btn" id="fw-btn-open-config" aria-label="打开配置位置" title="打开配置位置">
+            <button type="button" class="fw-top-btn" id="fw-btn-open-config" aria-label="查看存储说明" title="查看存储说明">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14 8.5 9h9.8a2 2 0 0 1 1.8 2.9l-3.1 6A2 2 0 0 1 15.2 19H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.2a2 2 0 0 1 1.4.6L11 5h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
             <button type="button" class="fw-close-btn" id="fw-btn-close" aria-label="关闭磨砂主题设置" title="关闭">
@@ -93,13 +108,13 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
             </div>
 
             <!-- Hero Image Preview -->
-            <button type="button" class="fw-hero" id="fw-hero-card">
-              <img id="fw-hero-preview-img" src="${currentImageUrl}" alt="当前壁纸预览">
+            <button type="button" class="fw-hero" id="fw-hero-card" aria-describedby="fw-hero-copy-desc">
+              <img id="fw-hero-preview-img" src="" alt="当前壁纸预览">
               <span class="fw-hero-scrim" aria-hidden="true"></span>
               <span class="fw-hero-glass" id="fw-hero-glass-badge"><span>玻璃效果</span></span>
               <div class="fw-hero-copy">
                 <strong id="fw-hero-copy-title">选择壁纸</strong>
-                <span id="fw-hero-copy-desc">${currentFileName} · ${currentDimensions}</span>
+                <span id="fw-hero-copy-desc"></span>
               </div>
               <span class="fw-hero-pick" aria-hidden="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
@@ -108,7 +123,10 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
             <input type="file" id="fw-file-uploader" class="fw-hidden" accept="image/jpeg,image/png,image/webp,image/gif">
 
             <!-- 2x2 Grid of Sliders -->
-            <div class="fw-controls-head"><strong>材质参数</strong><span>拖动即可预览</span></div>
+            <div class="fw-controls-head">
+              <strong>材质参数</strong>
+              <button type="button" class="fw-inline-btn" id="fw-btn-reset-controls">恢复默认参数</button>
+            </div>
             <div class="fw-grid">
               <!-- 玻璃浓度 -->
               <label class="fw-row">
@@ -183,6 +201,10 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
   const fileUploader = document.getElementById('fw-file-uploader');
   const btnClose = document.getElementById('fw-btn-close');
   const btnOpenConfig = document.getElementById('fw-btn-open-config');
+  const btnResetControls = document.getElementById('fw-btn-reset-controls');
+  const heroCopyDesc = document.getElementById('fw-hero-copy-desc');
+  heroImg.src = currentImageUrl;
+  heroCopyDesc.textContent = `${currentFileName} · ${currentDimensions}`;
   const statusNote = document.createElement('p');
   statusNote.id = 'fw-status-note';
   statusNote.className = 'fw-status-note';
@@ -241,11 +263,19 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
     if (isDirty) {
       chipStatus.textContent = '未保存';
       chipStatus.setAttribute('data-tone', 'warn');
-      btnSave.removeAttribute('disabled');
+      if (!isPersisting) btnSave.removeAttribute('disabled');
     } else {
       chipStatus.textContent = '已保存';
       chipStatus.removeAttribute('data-tone');
       btnSave.setAttribute('disabled', 'true');
+    }
+    if (isPersisting) {
+      chipStatus.textContent = '保存中';
+      chipStatus.setAttribute('data-tone', 'success');
+      btnSave.setAttribute('disabled', 'true');
+      btnSave.setAttribute('aria-busy', 'true');
+    } else {
+      btnSave.removeAttribute('aria-busy');
     }
     quickTrigger.setAttribute('aria-expanded', backdrop.classList.contains('fw-open') ? 'true' : 'false');
   }
@@ -280,15 +310,39 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
     clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(async () => {
       const scheduledVersion = changeVersion;
+      isPersisting = true;
+      syncUI();
       try {
         await persist(imageDirty);
         if (changeVersion === scheduledVersion) isDirty = false;
+        if (changeVersion === scheduledVersion) setStatus('已自动保存。', 'success');
         syncUI();
       } catch (error) {
         setStatus('自动保存失败，请重试。', 'error');
         console.warn('[FrostedWindow] Auto-save failed:', error);
+      } finally {
+        isPersisting = false;
+        syncUI();
       }
     }, 400);
+  }
+
+  function flushPendingChanges() {
+    clearTimeout(autoSaveTimer);
+    if (pendingFlushTask) return pendingFlushTask;
+    if (!isDirty && !imageDirty) return;
+    const scheduledVersion = changeVersion;
+    pendingFlushTask = persist(imageDirty).then(() => {
+      if (changeVersion === scheduledVersion) {
+        isDirty = false;
+        imageDirty = false;
+      }
+    }).catch((error) => {
+      console.warn('[FrostedWindow] Pending settings could not be saved:', error);
+    }).finally(() => {
+      pendingFlushTask = null;
+    });
+    return pendingFlushTask;
   }
 
   // Apply live changes immediately
@@ -314,12 +368,12 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
   if (!initialImageRecord) {
     getImage().then((stored) => {
       if (imageSelectionStarted || imageDirty) return;
-      if (stored && stored.data) {
+      if (stored && isImageDataUrl(stored.data)) {
         currentImageUrl = stored.data;
         currentFileName = stored.name || 'custom_wallpaper';
         currentDimensions = stored.dimensions || 'Custom';
         heroImg.src = currentImageUrl;
-        document.getElementById('fw-hero-copy-desc').textContent = `${currentFileName} · ${currentDimensions}`;
+        heroCopyDesc.textContent = `${currentFileName} · ${currentDimensions}`;
       }
       syncUI();
       applySurface(liveKnobs, currentImageUrl);
@@ -356,9 +410,19 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
     updateLive();
   });
 
+  btnResetControls.addEventListener('click', () => {
+    liveKnobs = { ...DEFAULT_KNOBS };
+    updateLive();
+    setStatus('材质参数已恢复默认，自动保存中。');
+  });
+
   function readImageFile(file) {
-    if (!file || !ALLOWED_TYPES.includes(file.type)) {
+    if (!isSupportedImage(file)) {
       setStatus('请选择 JPG、PNG、WebP 或 GIF 图片。', 'error');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setStatus(`图片过大（${formatBytes(file.size)}），请选择 12 MB 以内的图片。`, 'error');
       return;
     }
     imageSelectionStarted = true;
@@ -387,9 +451,9 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
         currentDimensions = '自定义图片';
       }
 
-      document.getElementById('fw-hero-copy-desc').textContent = `${currentFileName} · ${currentDimensions}`;
+      heroCopyDesc.textContent = `${currentFileName} · ${currentDimensions}`;
       updateLive({ imageChanged: true });
-      setStatus('预览已更新，正在保存。', 'success');
+      setStatus('预览已更新，自动保存中。');
     };
     reader.readAsDataURL(file);
   }
@@ -407,8 +471,11 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
 
   // Save changes explicitly
   btnSave.addEventListener('click', async () => {
+    if (isPersisting) return;
     clearTimeout(autoSaveTimer);
     const scheduledVersion = changeVersion;
+    isPersisting = true;
+    syncUI();
     try {
       await persist(imageDirty);
       if (changeVersion === scheduledVersion) isDirty = false;
@@ -418,6 +485,9 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
     } catch (error) {
       setStatus('保存失败，请重试。', 'error');
       console.warn('[FrostedWindow] Settings save failed:', error);
+    } finally {
+      isPersisting = false;
+      syncUI();
     }
   });
 
@@ -433,7 +503,7 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
     currentFileName = 'default_scenery.jpg';
     currentDimensions = '1920×1080';
     heroImg.src = currentImageUrl;
-    document.getElementById('fw-hero-copy-desc').textContent = `${currentFileName} · ${currentDimensions}`;
+    heroCopyDesc.textContent = `${currentFileName} · ${currentDimensions}`;
     imageDirty = false;
     isDirty = false;
     syncUI();
@@ -443,15 +513,7 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
 
   // Open config info / reveal on disk
   btnOpenConfig.addEventListener('click', () => {
-    try {
-      if (typeof window !== 'undefined' && window.electronNative && window.electronNative.revealInFilePicker) {
-        window.electronNative.revealInFilePicker('D:\\项目文件夹\\antigravity_theme');
-      } else {
-        alert('主题持久化存储配置:\n- 原生持久化文件: %APPDATA%\\Antigravity\\app_storage.json\n- 浏览器 IndexedDB: dsh-frosted-window\n- 项目工程路径: D:\\项目文件夹\\antigravity_theme');
-      }
-    } catch {
-      alert('主题持久化存储配置:\n- 原生持久化文件: %APPDATA%\\Antigravity\\app_storage.json\n- 浏览器 IndexedDB: dsh-frosted-window\n- 项目工程路径: D:\\项目文件夹\\antigravity_theme');
-    }
+    setStatus('设置会保存到 Antigravity 应用存储，并以 IndexedDB 作为回退。', 'success');
   });
 
   // Toggle Modal Open/Close
@@ -465,6 +527,7 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
       backdrop.setAttribute('aria-hidden', 'false');
       requestAnimationFrame(() => btnClose.focus());
     } else {
+      flushPendingChanges();
       backdrop.classList.remove('fw-open');
       backdrop.setAttribute('aria-hidden', 'true');
       if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
@@ -534,6 +597,7 @@ export function createSettingsModal(initialKnobs = null, initialImageRecord = nu
   });
 
   const cleanup = () => {
+    flushPendingChanges();
     clearTimeout(autoSaveTimer);
     clearTimeout(statusTimer);
     window.removeEventListener('keydown', handleKeydown);

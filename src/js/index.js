@@ -5,7 +5,7 @@
 
 import { loadKnobs, loadKnobsAsync } from './knobs.js';
 import { getImage, DEFAULT_WALLPAPER } from './image-store.js';
-import { applySurface } from './wallpaper.js';
+import { applySurface, refreshSurface } from './wallpaper.js';
 import { createSettingsModal } from './ui.js';
 
 export async function bootstrap() {
@@ -77,13 +77,18 @@ export async function bootstrap() {
       appBtn.after(item);
     };
 
-    const observer = new MutationObserver(() => {
+    const observer = new MutationObserver((mutations) => {
       if (syncQueued) return;
       syncQueued = true;
-      queueMicrotask(syncNativeSettingsEntry);
+      queueMicrotask(() => {
+        syncNativeSettingsEntry();
+        if (mutations.some((mutation) => mutation.type === 'attributes' && mutation.attributeName === 'class')) {
+          refreshSurface();
+        }
+      });
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     syncNativeSettingsEntry();
 
     if (typeof window !== 'undefined') {

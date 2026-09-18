@@ -3,6 +3,8 @@ import { DEFAULT_WALLPAPER } from './image-store.js';
 
 let wallpaperEl = null;
 let dimEl = null;
+let activeKnobs = null;
+let activeImageUrl = DEFAULT_WALLPAPER;
 
 export function getEffectiveScheme() {
   if (document.body.classList.contains('theme-dark')) return 'dark';
@@ -43,13 +45,16 @@ export function retractChrome() {
 }
 
 export function applySurface(knobs, imageUrl) {
+  activeKnobs = { ...knobs };
+  if (typeof imageUrl === 'string' && imageUrl) activeImageUrl = imageUrl;
+
   if (!knobs.enabled) {
     retractChrome();
     return;
   }
 
   ensureChrome();
-  const finalImage = imageUrl || DEFAULT_WALLPAPER;
+  const finalImage = activeImageUrl || DEFAULT_WALLPAPER;
   wallpaperEl.style.backgroundImage = `url("${finalImage}")`;
 
   const scheme = getEffectiveScheme();
@@ -71,4 +76,9 @@ export function applySurface(knobs, imageUrl) {
   document.body.style.setProperty('--fw-saturate', satVal);
   document.body.style.setProperty('--fw-dim', dimVal);
   document.body.style.setProperty('--fw-glass', glassVal);
+}
+
+/** Re-apply the current surface when Antigravity changes its color scheme. */
+export function refreshSurface() {
+  if (activeKnobs) applySurface(activeKnobs);
 }
